@@ -22,7 +22,7 @@ Host: `https://lensrhyme.com/api/v1`. Account: the designated test account. Auth
 | --- | --- | --- |
 | Shared | Login, obtain/create missing API key, list Workspace and models | Passed |
 | Studio Image | Submit real image task, wait for completed status, resolve resource to download URL, fetch PNG | Passed; HTTP 200, image/png, 768433 bytes; provider diagnostics report mocked=false |
-| Studio Video | First catalog model reached a definitive provider error; an explicit second test used `doubao-seedance-2-0-fast-260128`, 4 seconds / 720p / 16:9 | Second task completed; HTTP 200 video/mp4, 867257 bytes, MP4 movie header verifies 4.0 seconds; provider diagnostics report mocked=false. First model `doubao-seedance-1-0-pro-fast-251015` was rejected upstream as unknown; this was not silently treated as a success |
+| Studio Video | First catalog model reached a definitive provider error; an explicit second test used `doubao-seedance-2-0-fast-260128`, 4 seconds / 720p / 16:9 | Second task completed; HTTP 200 video/mp4, 867257 bytes, MP4 movie header reports 4.096 seconds for the requested 4-second clip; provider diagnostics report mocked=false. First model `doubao-seedance-1-0-pro-fast-251015` was rejected upstream as unknown; this was not silently treated as a success |
 | Canvas | Create project, save image node, read back, generate real image task, create node artifact and query artifact list | Passed; task completed and one generated artifact linked to the original node |
 | Workbench | Create project, act, scene and shot, read back parent associations | Passed |
 | Workbench generation | Request native shot generation | HTTP 402; billing prevents end-to-end generation verification |
