@@ -1,0 +1,4 @@
+interface:
+  display_name: "Lensrhyme Workbench"
+  short_description: "Produce structured Workbench projects"
+  default_prompt: "Use $lensrhyme-workbench to complete my LensRhyme request with my API management key."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Lensrhyme Studio Image"
+  short_description: "Create standalone Studio images"
+  default_prompt: "Use $lensrhyme-studio-image to complete my LensRhyme request with my API management key."

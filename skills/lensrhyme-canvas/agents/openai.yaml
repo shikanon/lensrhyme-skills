@@ -1,0 +1,4 @@
+interface:
+  display_name: "Lensrhyme Canvas"
+  short_description: "Operate Canvas projects and workflows"
+  default_prompt: "Use $lensrhyme-canvas to complete my LensRhyme request with my API management key."

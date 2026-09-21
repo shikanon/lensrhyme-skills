@@ -1,0 +1,4 @@
+interface:
+  display_name: "Lensrhyme Studio Video"
+  short_description: "Create standalone Studio video clips"
+  default_prompt: "Use $lensrhyme-studio-video to complete my LensRhyme request with my API management key."
