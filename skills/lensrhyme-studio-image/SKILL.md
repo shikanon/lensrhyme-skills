@@ -9,6 +9,10 @@ description: "Generate or edit standalone images in LensRhyme Studio: text-to-im
 
 Use for standalone posters, illustrations, character references, product images, or image edits requested in LensRhyme Studio. Example: “在 Studio 用这张参考图生成三张角色海报”. Video output uses `lensrhyme-studio-video`. A specified Canvas node or Workbench asset/storyboard stays under `lensrhyme-canvas` or `lensrhyme-workbench`, even if the result is an image. Do not create a project just to generate a standalone image.
 
+## Default model
+
+Use `doubao-seedream-5-0-pro-260628` unless the user explicitly chooses another compatible model. The bundled client fills this default for Studio tasks when `payload.model` is absent, null or blank. Preserve explicit overrides and never fall back on a provider/billing failure. For direct synchronous endpoints, supply this model explicitly. These skill defaults do not change account settings or Canvas/Workbench models.
+
 ## Workflow
 
 1. Resolve prompt, references, model and output dimensions; upload local inputs when needed.

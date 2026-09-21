@@ -53,6 +53,48 @@ class ClientTests(unittest.TestCase):
             with patch.object(self.c,'request',return_value={'url':'https://media.example/a'}) as req:
                 self.c.upload('/upload/',f,{'category':'reference'})
                 args=req.call_args.args;self.assertIn(b'name="file"',args[2]);self.assertIn(b'hello',args[2]);self.assertIn('boundary=',args[3])
+    def test_studio_default_models_reach_wire(self):
+        for kind, model in m.STUDIO_DEFAULT_MODELS.items():
+            payload = {'seed_audio': {'text': '你好'}} if kind == 'audio' else {'prompt': 'cup'}
+            body = {'entrypoint': 'studio', 'task_type': kind + '_generation', 'payload': payload}
+            with self.subTest(kind=kind), patch.object(self.c.opener, 'open', return_value=Response({'id':'t'})) as op:
+                self.c.request('POST', '/tasks/', body)
+                self.assertEqual(json.loads(op.call_args.args[0].data)['payload']['model'], model)
+                self.assertNotIn('model', body['payload'])
+    def test_explicit_override_preserved(self):
+        body = {'entrypoint':'studio','task_type':'image_generation','payload':{'model':'another-model'}}
+        self.assertEqual(m.prepare_studio_body('POST','/tasks/',body)['payload']['model'],'another-model')
+    def test_project_models_unchanged(self):
+        for owner in ['canvas','workbench',None]:
+            body={'entrypoint':owner,'task_type':'image_generation','payload':{}}
+            self.assertIs(m.prepare_studio_body('POST','/tasks/',body),body)
+    def test_null_blank_and_alias(self):
+        for value in [None,'','  ','doubao-seedream-5.0-pro']:
+            body={'entrypoint':'studio','task_type':'image_generation','payload':{'model':value}}
+            self.assertEqual(m.prepare_studio_body('POST','/tasks/',body)['payload']['model'],m.STUDIO_DEFAULT_MODELS['image'])
+    def test_audio_wrong_payload_fails_before_network(self):
+        with patch.object(self.c.opener,'open') as op:
+            with self.assertRaisesRegex(ValueError,'seed_audio.text'):
+                self.c.request('POST','/tasks/',{'entrypoint':'studio','task_type':'audio_generation','payload':{'text':'wrong shape'}})
+            op.assert_not_called()
+    def test_nested_audio_model_conflict(self):
+        body={'entrypoint':'studio','task_type':'audio_generation','payload':{'seed_audio':{'text':'hello','model':'other'}}}
+        with self.assertRaisesRegex(ValueError,'Conflicting'):
+            m.prepare_studio_body('POST','/tasks/',body)
+
+    def test_audio_explicit_legacy_model(self):
+        body={'entrypoint':'studio','task_type':'audio_generation','payload':{'model':'other-tts','text':'hello'}}
+        self.assertEqual(m.prepare_studio_body('POST','/tasks/',body)['payload'],body['payload'])
+    def test_studio_cli_applies_default(self):
+        with tempfile.TemporaryDirectory() as temp:
+            p=Path(temp)/'payload.json';p.write_text('{"seed_audio":{"text":"hello"}}')
+            args=['client','studio','audio','--json-file',str(p)]
+            with patch.object(m.sys,'argv',args),patch.dict(m.os.environ,{'LENSRHYME_API_KEY':'ltr_test'}),patch('urllib.request.OpenerDirector.open',return_value=Response({'id':'t'})) as op,patch('builtins.print'):
+                m.main()
+                body=json.loads(op.call_args.args[0].data)
+                self.assertEqual(body['entrypoint'],'studio')
+                self.assertEqual(body['payload']['model'],'seed-audio-1.0')
+
     def test_packages_self_contained(self):
         for d in (ROOT/'skills').iterdir():
             self.assertEqual((d/'scripts/lensrhyme_api.py').read_bytes(),(ROOT/'scripts/lensrhyme_api.py').read_bytes())

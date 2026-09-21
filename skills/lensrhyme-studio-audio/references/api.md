@@ -23,16 +23,26 @@ Completed tasks may return `resource:...` locators instead of HTTP URLs. Keep th
 
 401: missing/expired/revoked key. 402: insufficient credit or billing restriction; stop generation and report it, do not recharge or downgrade automatically. 403: user/Workspace/model/IP restrictions. 409: stale project or contract; re-read state before changing it. 422: inspect exact schema and capability constraints. 429: wait before another read; check task creation state before repeating a mutation. 5xx/network timeout: unknown outcome, reconcile existing tasks first. Never regenerate credentials, remove IP allowlists, change roles, or recharge as an automatic workaround.
 
-## Image requests
+## Audio requests
 
-Studio text-to-image body:
+Default model: `seed-audio-1.0`. The normal route is `POST /tasks/`, `entrypoint: studio`, `task_type: audio_generation`. The legacy synchronous `/audio/generation` schema is a different TTS surface; it does not accept this nested Seed Audio request. Do not send this body there.
+
+`payload.json` (the `studio audio` command fills the model):
 ```json
-{"entrypoint":"studio","task_type":"image_generation","name":"Character poster","payload":{"mode":"text_to_image","prompt":"A friendly original character in a quiet sunlit room","size":"2K","ratio":"1:1"}}
+{"seed_audio":{"kind":"seed_audio","text":"你好，欢迎来到灵韵创作空间。","text_prompt":"用自然、温暖、清晰的普通话朗读。","references":[],"audio_config":{"format":"wav","sample_rate":24000,"enable_subtitle":true}}}
 ```
-Reference editing: change `payload.mode` to `image_to_image` and add `image_urls: ["https://..."]`. Choose `size`/`ratio` from live model parameters; the bundled client fills `doubao-seedream-5-0-pro-260628` when `model` is omitted; an explicit model overrides it. Prompt, reference fidelity and count are part of user intent. Do not use a video endpoint for a still image.
+```bash
+python3 scripts/lensrhyme_api.py studio audio --json-file payload.json --out submitted.json
+python3 scripts/lensrhyme_api.py wait TASK_ID --seconds 300 --out completed.json
+```
 
-Dedicated synchronous endpoints: `/image/text_generation` (prompt, model?, size?); `/image/image_generation` (prompt, image_urls, model?, size?); `/image/character_design` (prompt, image_urls?, model?, size?, preset?); `/image/scene_topdown` (prompt, image_urls?, model?, size?). They return `{ "url": "..." }` and can charge immediately. Character presets are schema-defined. Do not pass Studio-only `ratio` or `entrypoint` to these request bodies.
+This nested payload follows the Studio audio draft serializer and server Seed Audio DTO; task OpenAPI exposes `payload` as an opaque object. Do not infer Seed Audio fields from that generic object schema.
 
-## Executable default
+- `seed_audio.text`: required, nonempty spoken text. `text_prompt`: optional direction. Combined direction, text references and text must not exceed 3000 characters, including separator newlines.
+- `references`: text `{ "kind":"text", "text":"..." }`; speaker `{ "kind":"speaker", "speaker":"supported speaker id" }`; audio `{ "kind":"audio", "resource_id":"..." }` or `{ "kind":"audio", "url":"https://..." }`; image uses `kind: image` with the same resource-or-URL source. A resource can include `resource_version_id`. Supply exactly one resource or URL per media reference, never a local path or inline base64. Discover speaker IDs rather than inventing them.
+- Maximum three combined speaker/audio references OR one image reference; do not mix speaker/audio and image references. Media limits: 10 MB; audio up to 30 seconds. Images: JPEG/PNG/WebP. Audio: WAV/MP3/PCM/OGG Opus; PCM needs its actual sample rate.
+- `audio_config.format`: wav, mp3, pcm or ogg_opus. `sample_rate`: 8000/16000/24000/32000/44100/48000. `speech_rate` and `loudness_rate`: -50..100; `pitch_rate`: -12..12; `enable_subtitle`: boolean. Defaults are WAV, 24000 Hz, zero rate adjustments and subtitles off.
+- Maximum model output duration is 120 seconds; do not fabricate an unsupported `duration` parameter to force length. Split a longer script only within the user's intended generation scope.
+- Optional `watermark`: `enabled`, `metadata_enabled`, and documented provenance fields. Do not pass frontend-only draft fields to the API.
 
-The default is `doubao-seedream-5-0-pro-260628`. Use `python3 scripts/lensrhyme_api.py studio image --json-file payload.json --out submitted.json` where the file contains only the generation payload (not a task envelope). The equivalent `request POST /tasks/` applies defaults only for `entrypoint: studio`. Explicit models remain unchanged; display aliases for the configured image/video model resolve to their exact API IDs. Direct synchronous API calls must specify the model themselves.
+The user supplies a LensRhyme Token Key, not a provider credential. If production reports a missing provider audio key or HTTP 402, report that exact blocker and preserve the task ID; do not request an unrelated API key or replace the model.

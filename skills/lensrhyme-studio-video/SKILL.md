@@ -9,6 +9,10 @@ description: "Generate standalone video clips in LensRhyme Studio from text, a f
 
 Use for independent clips in LensRhyme Studio. Example: “把这张产品图做成 5 秒展示视频”. For a still image use `lensrhyme-studio-image`. When a Canvas node, Workbench shot, episode or project is the destination, use its owning skill; do not create a standalone clip and lose the project association. A long story with episodes, cast continuity and a timeline belongs to Workbench; a reusable dependency graph belongs to Canvas.
 
+## Default model
+
+Use `doubao-seedance-2-0-fast-260128` unless the user explicitly chooses another compatible model. The bundled client fills this default for Studio tasks when `payload.model` is absent, null or blank. Preserve explicit overrides and never fall back on a provider/billing failure. For direct synchronous endpoints, supply this model explicitly. These skill defaults do not change account settings or Canvas/Workbench models.
+
 ## Workflow
 
 1. Resolve duration, aspect ratio, model, prompt and references. Match the exact video mode to the available inputs.

@@ -14,6 +14,42 @@ import urllib.request
 import uuid
 
 
+STUDIO_DEFAULT_MODELS = {
+    'image': 'doubao-seedream-5-0-pro-260628',
+    'video': 'doubao-seedance-2-0-fast-260128',
+    'audio': 'seed-audio-1.0',
+}
+STUDIO_MODEL_ALIASES = {
+    'doubao-seedream-5.0-pro': STUDIO_DEFAULT_MODELS['image'],
+    'doubao-seedance-2.0-fast': STUDIO_DEFAULT_MODELS['video'],
+}
+
+
+def prepare_studio_body(method, path, body):
+    """Default only Studio media tasks; never change project-bound requests."""
+    if method != 'POST' or path != '/tasks/' or not isinstance(body, dict) or body.get('entrypoint') != 'studio':
+        return body
+    kind = next((k for k in STUDIO_DEFAULT_MODELS if body.get('task_type') == k + '_generation'), None)
+    if kind is None:
+        return body
+    payload = body.get('payload')
+    if not isinstance(payload, dict):
+        raise ValueError('Studio task payload must be a JSON object')
+    model = payload.get('model')
+    if model is not None and not isinstance(model, str):
+        raise ValueError('model must be a string')
+    model = model.strip() if model else STUDIO_DEFAULT_MODELS[kind]
+    model = STUDIO_MODEL_ALIASES.get(model, model) or STUDIO_DEFAULT_MODELS[kind]
+    payload = {**payload, 'model': model}
+    if kind == 'audio' and model == STUDIO_DEFAULT_MODELS['audio']:
+        seed = payload.get('seed_audio')
+        if not isinstance(seed, dict) or not isinstance(seed.get('text'), str) or not seed['text'].strip():
+            raise ValueError('seed-audio-1.0 requires seed_audio.text, not the legacy top-level text/voice_id payload')
+        if seed.get('model', model) != model:
+            raise ValueError('Conflicting nested Seed Audio model')
+    return {**body, 'payload': payload}
+
+
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         return None
@@ -38,6 +74,7 @@ class Client:
         headers = {'Authorization': 'Bearer ' + self.token, 'Accept': 'application/json'}
         if self.workspace:
             headers['X-Workspace-ID'] = self.workspace
+        body = prepare_studio_body(method, path, body)
         data = body if isinstance(body, bytes) else json.dumps(body).encode() if body is not None else None
         if data is not None:
             headers['Content-Type'] = content_type
@@ -85,6 +122,7 @@ def main():
     r.add_argument('path'); r.add_argument('--json-file'); r.add_argument('--out')
     w = sub.add_parser('wait'); w.add_argument('task_id'); w.add_argument('--seconds', type=int, default=300); w.add_argument('--out')
     u = sub.add_parser('upload'); u.add_argument('file'); u.add_argument('--path', default='/upload/'); u.add_argument('--fields-file'); u.add_argument('--out')
+    g = sub.add_parser('studio'); g.add_argument('kind', choices=sorted(STUDIO_DEFAULT_MODELS)); g.add_argument('--json-file', required=True); g.add_argument('--name'); g.add_argument('--out')
     s = sub.add_parser('schema'); s.add_argument('path'); s.add_argument('--method', default='POST')
     args = p.parse_args()
     if args.command == 'schema':
@@ -106,6 +144,9 @@ def main():
     if args.command == 'request':
         body = json.loads(Path(args.json_file).read_text()) if args.json_file else None
         result = c.request(args.method, args.path, body)
+    elif args.command == 'studio':
+        payload = json.loads(Path(args.json_file).read_text())
+        result = c.request('POST', '/tasks/', {'entrypoint': 'studio', 'task_type': args.kind + '_generation', 'name': args.name or 'Studio ' + args.kind, 'payload': payload})
     elif args.command == 'upload':
         fields = json.loads(Path(args.fields_file).read_text()) if args.fields_file else None
         result = c.upload(args.path, args.file, fields)

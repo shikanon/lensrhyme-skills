@@ -1,0 +1,4 @@
+interface:
+  display_name: "LensRhyme Studio Audio"
+  short_description: "Generate standalone Studio audio and voiceovers"
+  default_prompt: "Use $lensrhyme-studio-audio to generate my narration with my API management key."

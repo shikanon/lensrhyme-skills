@@ -37,3 +37,7 @@ Modes (exact wire values):
 All modes may include model, duration, ratio, resolution, async_mode. Optional audio/watermark parameters must be supported by the chosen model. Reference roles are not interchangeable with first/last frame. Model capability constraints override example dimensions/durations.
 
 `POST /video/generation` accepts the same mode fields directly and returns `task_id` for async or `video_url` for sync. `/video/text_to_video` is the text-only convenience endpoint. Prefer `/tasks/` for Studio history. `/video/optimize-prompt` is an optional model-backed rewrite, not video generation; inspect its schema and preserve the user's content before using it.
+
+## Executable default
+
+The default is `doubao-seedance-2-0-fast-260128`. Use `python3 scripts/lensrhyme_api.py studio video --json-file payload.json --out submitted.json` where the file contains only the generation payload (not a task envelope). The equivalent `request POST /tasks/` applies defaults only for `entrypoint: studio`. Explicit models remain unchanged; display aliases for the configured image/video model resolve to their exact API IDs. Direct synchronous API calls must specify the model themselves.
