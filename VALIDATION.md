@@ -7,6 +7,13 @@
 - Bundled `skill-creator/scripts/quick_validate.py` was attempted but could not run because the available Python runtimes lack PyYAML. The dependency-free repository validator was used instead; no environment packages were installed.
 - Credential scan: no live API key, login token or test password in the published files.
 
+## Public installation and CI
+
+- Codex bundled `skill-installer/scripts/install-skill-from-github.py --repo shikanon/lensrhyme-skills --path skills/lensrhyme-studio-image skills/lensrhyme-studio-video skills/lensrhyme-canvas skills/lensrhyme-workbench --dest /tmp/lensrhyme-installed-skills`: all four installed from public GitHub.
+- Each installed client ran `request GET` against its models/project endpoint with the production API key; all four passed. Each installed `schema /api/v1/tasks/` command also passed without application source dependencies.
+- [Initial GitHub Actions validation](https://github.com/shikanon/lensrhyme-skills/actions/runs/35584016450): passed on commit `6c4281c`.
+- Delivery requirement: [issue #1](https://github.com/shikanon/lensrhyme-skills/issues/1).
+
 ## Production API tests
 
 Host: `https://lensrhyme.com/api/v1`. Account: the designated test account. Authentication for creative operations used its API management Token Key, not its login JWT. Test credentials and full response artifacts remain outside this public repository.
@@ -15,7 +22,7 @@ Host: `https://lensrhyme.com/api/v1`. Account: the designated test account. Auth
 | --- | --- | --- |
 | Shared | Login, obtain/create missing API key, list Workspace and models | Passed |
 | Studio Image | Submit real image task, wait for completed status, resolve resource to download URL, fetch PNG | Passed; HTTP 200, image/png, 768433 bytes; provider diagnostics report mocked=false |
-| Studio Video | Submit a catalog-listed video model task and poll terminal state | The first model was rejected by upstream with unknown-model error; authentication/task submission worked |
+| Studio Video | First catalog model reached a definitive provider error; an explicit second test used `doubao-seedance-2-0-fast-260128`, 4 seconds / 720p / 16:9 | Second task completed; HTTP 200 video/mp4, 867257 bytes, MP4 movie header verifies 4.0 seconds; provider diagnostics report mocked=false. First model `doubao-seedance-1-0-pro-fast-251015` was rejected upstream as unknown; this was not silently treated as a success |
 | Canvas | Create project, save image node, read back, generate real image task, create node artifact and query artifact list | Passed; task completed and one generated artifact linked to the original node |
 | Workbench | Create project, act, scene and shot, read back parent associations | Passed |
 | Workbench generation | Request native shot generation | HTTP 402; billing prevents end-to-end generation verification |
